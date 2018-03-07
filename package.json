@@ -1,11 +1,16 @@
 {
   "name": "pbrpc",
   "description": "Websocket protobuf client",
+  "scripts": {
+    "build": "tsc"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/azcorp-cloud/pbRpc-client.git"
   },
-  "version": "0.1.0",
+  "main": "dist/index.js",
+  "typings" : "dist/index.d.ts",
+  "version": "0.1.1",
   "license": "MIT",
   "dependencies": {
     "npm": "^5.7.1",

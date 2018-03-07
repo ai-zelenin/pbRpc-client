@@ -1,6 +1,6 @@
 import {Subject} from "rxjs/Subject";
 import {Observer} from "rxjs/Observer";
-import {Message} from "./rpc_pb";
+import {Message} from "../pb/rpc_pb";
 import {Observable} from "rxjs/Observable";
 
 export class PbRPC {
@@ -8,12 +8,12 @@ export class PbRPC {
     public ws: WebSocket;
     public wsSubject: Subject<any>;
     public stack: Map<number, Observer<any>>;
-    public checkInterbval: number;
+    public checkInterval: number;
 
     public Init(url: string) {
         console.log("Init WebSocket connection");
         this.url = url;
-        this.checkInterbval = 1500;
+        this.checkInterval = 1500;
         this.ws = new WebSocket(this.url);
         this.ws.binaryType = "arraybuffer";
         this.ws.onopen = () => {
@@ -23,7 +23,7 @@ export class PbRPC {
                 if (this.ws.readyState !== WebSocket.OPEN) {
                     this.Init(this.url);
                 }
-            }, this.checkInterbval);
+            }, this.checkInterval);
             // Create observable for subject
             const observable = Observable.create((obs: Observer<MessageEvent>) => {
                 this.ws.onmessage = obs.next.bind(obs);
