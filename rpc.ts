@@ -21,38 +21,39 @@ export class PbRpc {
             this.ws.onopen = () => {
                 this.wsConnStateObserver.next(true);
                 console.log("WebSocket open");
+                const observable = Observable.create((obs: Observer<MessageEvent>) => {
+                    this.ws.onmessage = obs.next.bind(obs);
+                    this.ws.onerror = obs.error.bind(obs);
+                    this.ws.onclose = obs.complete.bind(obs);
+                    return this.ws.close.bind(this.ws);
+                });
+                const observer = {
+                    next: (request: Message) => {
+                        if (this.ws !== undefined && this.ws.readyState !== WebSocket.OPEN) {
+                            console.log("WebSocket is closed.");
+                            this.wsConnStateObserver.next(false);
+                            setTimeout(() => {
+                                this.ows.next(request);
+                            }, 500);
+                        } else {
+                            this.ws.send(request.serializeBinary());
+                        }
+                    },
+                    error: (error) => {
+                        this.wsConnStateObserver.next(false);
+                        console.log(error, "WebSocket error");
+                    },
+                    complete: () => {
+                        this.wsConnStateObserver.next(false);
+                        console.log("WebSocket close");
+                    }
+                };
+                if (this.stack === undefined || this.ows === undefined) {
+                    this.createStack(observer, observable);
+                }
             };
         });
-        const observable = Observable.create((obs: Observer<MessageEvent>) => {
-            this.ws.onmessage = obs.next.bind(obs);
-            this.ws.onerror = obs.error.bind(obs);
-            this.ws.onclose = obs.complete.bind(obs);
-            return this.ws.close.bind(this.ws);
-        });
-        const observer = {
-            next: (request: Message) => {
-                if (this.ws !== undefined && this.ws.readyState !== WebSocket.OPEN) {
-                    console.log("WebSocket is closed.");
-                    this.wsConnStateObserver.next(false);
-                    setTimeout(() => {
-                        this.ows.next(request);
-                    }, 500);
-                } else {
-                    this.ws.send(request.serializeBinary());
-                }
-            },
-            error: (error) => {
-                this.wsConnStateObserver.next(false);
-                console.log(error, "WebSocket error");
-            },
-            complete: () => {
-                this.wsConnStateObserver.next(false);
-                console.log("WebSocket close");
-            }
-        };
-        if (this.stack === undefined || this.ows === undefined) {
-            this.createStack(observer, observable);
-        }
+
     }
 
     private createStack(observer: Observer<any>, observable: Observable<any>) {
