@@ -1,9 +1,9 @@
 {
   "name": "pbrpc",
   "description": "Websocket protobuf client",
-  "repository" : {
-    "type" : "git",
-    "url" : ""
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azcorp-cloud/pbRpc-client.git"
   },
   "version": "0.0.1",
   "license": "MIT",
