@@ -3,63 +3,65 @@ import {Observer} from "rxjs/Observer";
 import {Message} from "./rpc_pb";
 import {Observable} from "rxjs/Observable";
 
-export class PbRpc {
+export class PbRPC {
     public url: string;
     public ws: WebSocket;
-    public wsConnStateObservable: Observable<boolean>;
-    private wsConnStateObserver: Observer<any>;
-    public ows: Subject<any>;
+    public wsSubject: Subject<any>;
     public stack: Map<number, Observer<any>>;
+    public checkInterbval: number;
 
-    Init(url: string) {
+    public Init(url: string) {
+        console.log("Init WebSocket connection");
         this.url = url;
-        this.wsConnStateObservable = new Observable(connObserver => {
-            this.wsConnStateObserver = connObserver;
-            console.log("Init WebSocket connection");
-            this.ws = new WebSocket(this.url);
-            this.ws.binaryType = "arraybuffer";
-            this.ws.onopen = () => {
-                this.wsConnStateObserver.next(true);
-                console.log("WebSocket open");
-                const observable = Observable.create((obs: Observer<MessageEvent>) => {
-                    this.ws.onmessage = obs.next.bind(obs);
-                    this.ws.onerror = obs.error.bind(obs);
-                    this.ws.onclose = obs.complete.bind(obs);
-                    return this.ws.close.bind(this.ws);
-                });
-                const observer = {
-                    next: (request: Message) => {
-                        if (this.ws !== undefined || this.ws.readyState !== WebSocket.OPEN) {
-                            console.log("WebSocket is closed.");
-                            this.wsConnStateObserver.next(false);
-                            setTimeout(() => {
-                                this.ows.next(request);
-                            }, 1000);
-                        } else {
-                            this.ws.send(request.serializeBinary());
-                        }
-                    },
-                    error: (error) => {
-                        this.wsConnStateObserver.next(false);
-                        console.log(error, "WebSocket error");
-                    },
-                    complete: () => {
-                        this.wsConnStateObserver.next(false);
-                        console.log("WebSocket close");
+        this.checkInterbval = 1500;
+        this.ws = new WebSocket(this.url);
+        this.ws.binaryType = "arraybuffer";
+        this.ws.onopen = () => {
+            console.log("WebSocket open");
+            // Setup check function
+            setInterval(() => {
+                if (this.ws.readyState !== WebSocket.OPEN) {
+                    this.Init(this.url);
+                }
+            }, this.checkInterbval);
+            // Create observable for subject
+            const observable = Observable.create((obs: Observer<MessageEvent>) => {
+                this.ws.onmessage = obs.next.bind(obs);
+                this.ws.onerror = obs.error.bind(obs);
+                this.ws.onclose = obs.complete.bind(obs);
+                return this.ws.close.bind(this.ws);
+            });
+            // Create observer for subject
+            const observer = {
+                next: (request: Message) => {
+                    if (this.ws === undefined || this.ws.readyState !== WebSocket.OPEN) {
+                        console.log("WebSocket is closed.");
+                        this.Init(this.url);
+                    } else {
+                        this.ws.send(request.serializeBinary());
                     }
-                };
-                if (this.stack === undefined || this.ows === undefined) {
-                    this.createStack(observer, observable);
+                },
+                error: (error) => {
+                    console.log(error, "WebSocket error");
+                    this.Init(this.url);
+                },
+                complete: () => {
+                    console.log("WebSocket close");
+                    this.Init(this.url);
                 }
             };
-        });
-
+            // Create procedure call stack
+            if (this.stack === undefined) {
+                this.stack = new Map();
+            }
+            // Create websocket subject
+            this.createWsSubject(observer, observable);
+        };
     }
 
-    private createStack(observer: Observer<any>, observable: Observable<any>) {
-        this.stack = new Map();
-        this.ows = <Subject<any>> Subject.create(observer, observable);
-        this.ows.asObservable().subscribe((msg: MessageEvent) => {
+    private createWsSubject(observer: Observer<any>, observable: Observable<any>) {
+        this.wsSubject = <Subject<any>> Subject.create(observer, observable);
+        this.wsSubject.asObservable().subscribe((msg: MessageEvent) => {
             // Deserialize incoming message
             const response = Message.deserializeBinary(new Uint8Array(msg.data));
             // Find id in map and roll observer
@@ -84,7 +86,7 @@ export class PbRpc {
         return new Observable(observer => {
             // Create response observer
             this.stack.set(message.getId(), observer);
-            this.ows.next(message);
+            this.wsSubject.next(message);
         });
     }
 }
