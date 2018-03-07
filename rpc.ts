@@ -29,12 +29,12 @@ export class PbRpc {
                 });
                 const observer = {
                     next: (request: Message) => {
-                        if (this.ws !== undefined && this.ws.readyState !== WebSocket.OPEN) {
+                        if (this.ws !== undefined || this.ws.readyState !== WebSocket.OPEN) {
                             console.log("WebSocket is closed.");
                             this.wsConnStateObserver.next(false);
                             setTimeout(() => {
                                 this.ows.next(request);
-                            }, 500);
+                            }, 1000);
                         } else {
                             this.ws.send(request.serializeBinary());
                         }
