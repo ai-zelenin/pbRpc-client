@@ -89,6 +89,12 @@ export class PbRPC {
             this.wsSubject.next(message);
         });
     }
+
+    public KillStream(id: number) {
+        const message = new Message();
+        message.setId(id);
+        this.wsSubject.next(message);
+    }
 }
 
 export interface Serial {
