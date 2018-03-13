@@ -81,5 +81,10 @@ export class PbRPC {
             this.wsSubject.next(message);
         });
     }
+    KillStream(id) {
+        const message = new Message();
+        message.setId(id);
+        this.wsSubject.next(message);
+    }
 }
 //# sourceMappingURL=index.js.map
