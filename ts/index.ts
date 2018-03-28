@@ -67,7 +67,7 @@ export class PbRPC {
             // Find id in map and roll observer
             const obs = this.stack.get(response.getId());
             if (obs !== undefined) {
-                if (response.getMethod() !== undefined) {
+                if (response.getMethod() !== "") {
                     obs.next(response);
                 }
                 if (!response.getInstream()) {
