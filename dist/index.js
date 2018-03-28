@@ -26,7 +26,7 @@ export class PbRPC {
             // Create observer for subject
             const observer = {
                 next: (request) => {
-                    if (this.ws === undefined || this.ws.readyState !== WebSocket.OPEN) {
+                    if (this.ws === undefined || (this.ws.readyState !== WebSocket.OPEN && this.ws.readyState !== WebSocket.CONNECTING)) {
                         console.log("WebSocket is closed.");
                         this.Init(this.url);
                     }
@@ -59,7 +59,9 @@ export class PbRPC {
             // Find id in map and roll observer
             const obs = this.stack.get(response.getId());
             if (obs !== undefined) {
-                obs.next(response);
+                if (response.getMethod() !== "") {
+                    obs.next(response);
+                }
                 if (!response.getInstream()) {
                     obs.complete();
                     this.stack.delete(response.getId());
