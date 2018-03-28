@@ -34,7 +34,7 @@ export class PbRPC {
             // Create observer for subject
             const observer = {
                 next: (request: Message) => {
-                    if (this.ws === undefined || this.ws.readyState !== WebSocket.OPEN) {
+                    if (this.ws === undefined || (this.ws.readyState !== WebSocket.OPEN && this.ws.readyState !== WebSocket.CONNECTING)) {
                         console.log("WebSocket is closed.");
                         this.Init(this.url);
                     } else {
